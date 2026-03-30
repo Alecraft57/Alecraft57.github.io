@@ -1,31 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Mi Mini App de Comida</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Durger King Clone</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); }
-        .button { background: #3390ec; color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            /* Usamos las variables de color de Telegram para que se adapte al modo oscuro/claro */
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .item-card {
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 15px;
+            width: 80%;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+        .btn-add {
+            background-color: #3390ec;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <h1>Hamburguesas Express 🍔</h1>
-    <p>Bienvenido, <span id="username"></span></p>
-    <div class="button" onclick="enviarPedido()">Pedir Combo $10</div>
 
-    <script>
-        // Inicializar la app
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Abre la app a pantalla completa
+    <div class="container">
+        <h1>Durger King 🍔</h1>
+        <p>Hola, <b id="username">Usuario</b>. ¿Qué vas a comer hoy?</p>
 
-        // Mostrar el nombre del usuario desde Telegram
-        document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
+        <div class="item-card">
+            <h3>Combo Simple</h3>
+            <p>$10.00</p>
+            <button class="btn-add" onclick="agregarAlCarrito('Combo Simple', 10.00)">Agregar</button>
+        </div>
 
-        function enviarPedido() {
-            // Enviar datos de vuelta al bot
-            tg.sendData("Pedido: 1x Combo Hamburguesa");
-            tg.close(); // Cerrar la app después de pedir
-        }
-    </script>
+        <div class="item-card">
+            <h3>Combo Doble</h3>
+            <p>$15.00</p>
+            <button class="btn-add" onclick="agregarAlCarrito('Combo Doble', 15.00)">Agregar</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
