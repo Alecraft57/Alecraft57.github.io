@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Mini App de Comida</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); }
+        .button { background: #3390ec; color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Hamburguesas Express 🍔</h1>
+    <p>Bienvenido, <span id="username"></span></p>
+    <div class="button" onclick="enviarPedido()">Pedir Combo $10</div>
+
+    <script>
+        // Inicializar la app
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Abre la app a pantalla completa
+
+        // Mostrar el nombre del usuario desde Telegram
+        document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
+
+        function enviarPedido() {
+            // Enviar datos de vuelta al bot
+            tg.sendData("Pedido: 1x Combo Hamburguesa");
+            tg.close(); // Cerrar la app después de pedir
+        }
+    </script>
+</body>
+</html>
