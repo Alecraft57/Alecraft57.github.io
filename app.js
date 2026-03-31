@@ -16,35 +16,76 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
 
 let carrito = [];
 
+function vaciarCarrito() {
+    // 1. Preguntar al usuario antes de borrar (opcional pero recomendado)
+    if (confirm("¿Seguro que quieres vaciar el carrito?")) {
+        carrito = []; // Limpiamos el array
+        
+        // 2. Feedback táctil (vibración de aviso)
+        if (tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        // 3. Ocultamos el botón de vaciar y el MainButton de Telegram
+        document.getElementById('btn-vaciar').style.display = 'none';
+        tg.MainButton.hide();
+        
+        alert("Carrito vaciado");
+    }
+}
+
+// MODIFICACIÓN: Actualiza tu función agregarAlCarrito para que muestre el botón de vaciar
 function agregarAlCarrito(nombre, precio) {
     carrito.push({ nombre, precio });
     
-    // Calcular el total
+    // Mostramos el botón de "Vaciar" solo si hay algo en el carrito
+    document.getElementById('btn-vaciar').style.display = 'block';
+
+    if (tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+    }
+
+    actualizarInterfaz();
+}
+
+function actualizarInterfaz() {
+    if (carrito.length === 0) {
+        tg.MainButton.hide();
+        return;
+    }
+
     const total = carrito.reduce((sum, item) => sum + item.precio, 0);
     
-    // Actualizar y mostrar el botón principal de Telegram
-    tg.MainButton.setText(`PEDIR TOTAL: $${total.toFixed(2)}`);
+    // Actualizamos el texto del botón con el número de productos
+    tg.MainButton.setText(`VER PEDIDO (${carrito.length}) - $${total.toFixed(2)}`);
+    
     if (!tg.MainButton.isVisible) {
         tg.MainButton.show();
     }
 }
 
-// 2. Escuchar el evento de clic en el Botón Principal de Telegram
+// Evento al hacer clic en el botón verde de abajo
 tg.onEvent('mainButtonClicked', function() {
-    // Crear un resumen del pedido
-    const nombresProductos = carrito.map(item => item.nombre).join(", ");
+    // 3. Agrupar productos para que el mensaje sea legible
+    // Ejemplo: { "Combo Simple": 2, "Patatas": 1 }
+    const conteo = {};
+    carrito.forEach(item => {
+        conteo[item.nombre] = (conteo[item.nombre] || 0) + 1;
+    });
+
+    // Convertir el objeto a un texto bonito: "2x Combo Simple, 1x Patatas"
+    const resumenTexto = Object.entries(conteo)
+        .map(([nombre, cantidad]) => `${cantidad}x ${nombre}`)
+        .join(", ");
+
     const totalPedido = carrito.reduce((sum, item) => sum + item.precio, 0);
     
     const datosParaElBot = {
-        productos: nombresProductos,
-        total: totalPedido,
-        timestamp: new Date().getTime()
+        resumen: resumenTexto,
+        total: totalPedido.toFixed(2),
+        cantidad_items: carrito.length
     };
 
-    // 3. Enviar los datos al Bot y cerrar la Mini App
-    // IMPORTANTE: stringify convierte el objeto en texto para que el bot lo lea
+    // 4. Enviar y cerrar
     tg.sendData(JSON.stringify(datosParaElBot));
 });
-
-// Opcional: Avisar a Telegram que la app está lista para mostrarse
-tg.ready();
