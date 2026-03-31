@@ -120,6 +120,19 @@ p {
     overflow-y: auto;
 }
 
+#lista-resumen button {
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+#lista-resumen button:active {
+    background-color: #ddd;
+}
+
 .modal-buttons {
     display: flex;
     flex-direction: column;
