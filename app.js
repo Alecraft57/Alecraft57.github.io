@@ -1,7 +1,5 @@
 // 1. Inicializar la WebApp de Telegram
 const tg = window.Telegram.WebApp;
-
-// Expandir la app para que use toda la pantalla disponible
 tg.expand();
 
 // Personalizar el botón principal de Telegram
@@ -15,6 +13,12 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
 }
 
 let carrito = {};
+
+// --- VINCULACIÓN CRÍTICA ---
+// Esta línea es la que hace que al pulsar el botón verde se abra el resumen
+tg.onEvent('mainButtonClicked', function() {
+    mostrarResumen();
+});
 
 function agregarAlCarrito(nombre, precio) {
     if (carrito[nombre]) {
@@ -43,10 +47,8 @@ function actualizarInterfaz() {
     if (!tg.MainButton.isVisible) tg.MainButton.show();
 }
 
-// Funciones para el Modal (Sumar/Restar)
 function cambiarCantidad(nombre, delta) {
     if (!carrito[nombre]) return;
-
     carrito[nombre].cantidad += delta;
 
     if (carrito[nombre].cantidad <= 0) {
@@ -55,30 +57,35 @@ function cambiarCantidad(nombre, delta) {
 
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     
-    mostrarResumen(); // Refrescar el modal
-    actualizarInterfaz(); // Refrescar el botón de Telegram
+    // Si borramos todo desde el modal, lo cerramos
+    if (Object.keys(carrito).length === 0) {
+        cerrarModal();
+    } else {
+        mostrarResumen(); 
+    }
+    actualizarInterfaz(); 
 }
 
 function mostrarResumen() {
     const listaDiv = document.getElementById('lista-resumen');
     const totalSpan = document.getElementById('total-modal');
-    listaDiv.innerHTML = "";
-
-    const items = Object.entries(carrito);
     
-    if (items.length === 0) {
-        cerrarModal();
+    if (!listaDiv || !totalSpan) {
+        console.error("No se encontraron los elementos del modal en el HTML");
         return;
     }
 
+    listaDiv.innerHTML = "";
+    const items = Object.entries(carrito);
+    
     items.forEach(([nombre, datos]) => {
         listaDiv.innerHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span>${nombre} ($${datos.precio.toFixed(2)})</span>
-                <div>
-                    <button onclick="cambiarCantidad('${nombre}', -1)" style="padding: 5px 10px;">-</button>
-                    <span style="margin: 0 10px; font-weight: bold;">${datos.cantidad}</span>
-                    <button onclick="cambiarCantidad('${nombre}', 1)" style="padding: 5px 10px;">+</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                <span style="color: #333;">${nombre}</span>
+                <div style="display: flex; align-items: center;">
+                    <button onclick="cambiarCantidad('${nombre}', -1)" style="width:30px; height:30px; background:#eee; border:none; border-radius:5px;">-</button>
+                    <span style="margin: 0 10px; font-weight: bold; min-width: 20px; text-align: center;">${datos.cantidad}</span>
+                    <button onclick="cambiarCantidad('${nombre}', 1)" style="width:30px; height:30px; background:#eee; border:none; border-radius:5px;">+</button>
                 </div>
             </div>
         `;
@@ -88,12 +95,21 @@ function mostrarResumen() {
     totalSpan.innerText = `$${total.toFixed(2)}`;
 
     document.getElementById('modal-confirmacion').style.display = 'flex';
-    tg.MainButton.hide();
+    tg.MainButton.hide(); // Ocultamos el botón de Telegram mientras el modal está abierto
 }
 
-// Actualizamos la función de envío para que use la nueva estructura
+// Función para cerrar el modal y volver al menú
+function cerrarModal() {
+    document.getElementById('modal-confirmacion').style.display = 'none';
+    if (Object.keys(carrito).length > 0) {
+        tg.MainButton.show();
+    }
+}
+
 function confirmarYEnviar() {
     const items = Object.entries(carrito);
+    if (items.length === 0) return;
+
     const resumenTexto = items.map(([nombre, d]) => `${d.cantidad}x ${nombre}`).join(", ");
     const totalPedido = items.reduce((sum, [_, d]) => sum + (d.precio * d.cantidad), 0);
     
@@ -103,4 +119,14 @@ function confirmarYEnviar() {
     };
 
     tg.sendData(JSON.stringify(datosParaElBot));
+}
+
+function vaciarCarrito() {
+    if (confirm("¿Seguro que quieres vaciar el carrito?")) {
+        carrito = {};
+        document.getElementById('btn-vaciar').style.display = 'none';
+        tg.MainButton.hide();
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        actualizarInterfaz();
+    }
 }
