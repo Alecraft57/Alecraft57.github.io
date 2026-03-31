@@ -32,6 +32,15 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .card-img {
+            width: 100%;       
+            height: auto;      
+            display: block;   
+    
+            border-radius: 8px;
+            max-height: 250px; 
+            object-fit: cover; 
+}
     </style>
 </head>
 <body>
@@ -41,28 +50,21 @@
         <p>Hola, <b id="username">Usuario</b>. ¿Qué vas a comer hoy?</p>
 
         <div class="item-card">
-            <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500" alt="Hamburguesa Simple" class="card-img">
-            <h3>Hamburguesa Simple</h3>
+            <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500" alt="Hamburguesa" class="card-img">
+            <h3>Hamburguesa</h3>
             <p>$10.00</p>
             <button class="btn-add" onclick="agregarAlCarrito('Combo Simple', 10.00)">Agregar</button>
         </div>
 
         <div class="item-card">
-            <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500" alt="Hamburguesa Doble" class="card-img">
-            <h3>Hamburguesa Doble</h3>
-            <p>$15.00</p>
-            <button class="btn-add" onclick="agregarAlCarrito('Combo Doble', 15.00)">Agregar</button>
-        </div>
-
-        <div class="item-card">
-            <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500" alt="Perrito Caliente" class="card-img">
+            <img src="https://images.unsplash.com/photo-1541214113241-21578d2d9b62?w=500" alt="Perrito Caliente" class="card-img">
             <h3>Perrito Caliente</h3>
             <p>$10.00</p>
             <button class="btn-add" onclick="agregarAlCarrito('Combo Doble', 15.00)">Agregar</button>
         </div>
 
         <div class="item-card">
-            <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=500" alt="Patatas Fritas" class="card-img">
+            <img src="https://images.unsplash.com/photo-1630384066252-19e1ad95536a?w=500" alt="Patatas Fritas" class="card-img">
             <h3>Patatas Fritas</h3>
             <p>$7.50</p>
             <button class="btn-add" onclick="agregarAlCarrito('Combo Doble', 15.00)">Agregar</button>
