@@ -14,114 +14,93 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
 }
 
-let carrito = [];
-
-// --- FUNCIONES DE CARRITO ---
+let carrito = {};
 
 function agregarAlCarrito(nombre, precio) {
-    carrito.push({ nombre, precio });
-    
-    // Mostramos el botón de "Vaciar" en el menú
-    document.getElementById('btn-vaciar').style.display = 'block';
-
-    if (tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('medium');
+    if (carrito[nombre]) {
+        carrito[nombre].cantidad += 1;
+    } else {
+        carrito[nombre] = { precio: precio, cantidad: 1 };
     }
-
+    
+    document.getElementById('btn-vaciar').style.display = 'block';
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
     actualizarInterfaz();
 }
 
-function vaciarCarrito() {
-    if (confirm("¿Seguro que quieres vaciar el carrito?")) {
-        carrito = [];
-        
-        if (tg.HapticFeedback) {
-            tg.HapticFeedback.notificationOccurred('warning');
-        }
-
-        document.getElementById('btn-vaciar').style.display = 'none';
-        tg.MainButton.hide();
-        cerrarModal(); // Por si acaso estuviera abierto
-    }
-}
-
 function actualizarInterfaz() {
-    if (carrito.length === 0) {
+    const items = Object.values(carrito);
+    const totalCantidad = items.reduce((sum, i) => sum + i.cantidad, 0);
+    const totalDinero = items.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
+
+    if (totalCantidad === 0) {
         tg.MainButton.hide();
+        document.getElementById('btn-vaciar').style.display = 'none';
         return;
     }
 
-    const total = carrito.reduce((sum, item) => sum + item.precio, 0);
-    tg.MainButton.setText(`VER PEDIDO (${carrito.length}) - $${total.toFixed(2)}`);
-    
-    if (!tg.MainButton.isVisible) {
-        tg.MainButton.show();
-    }
+    tg.MainButton.setText(`VER PEDIDO (${totalCantidad}) - $${totalDinero.toFixed(2)}`);
+    if (!tg.MainButton.isVisible) tg.MainButton.show();
 }
 
-// --- LÓGICA DEL MODAL (RESUMEN) ---
+// Funciones para el Modal (Sumar/Restar)
+function cambiarCantidad(nombre, delta) {
+    if (!carrito[nombre]) return;
 
-// Al pulsar el botón verde de Telegram, abrimos el resumen
-tg.onEvent('mainButtonClicked', function() {
-    mostrarResumen();
-});
+    carrito[nombre].cantidad += delta;
+
+    if (carrito[nombre].cantidad <= 0) {
+        delete carrito[nombre];
+    }
+
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    
+    mostrarResumen(); // Refrescar el modal
+    actualizarInterfaz(); // Refrescar el botón de Telegram
+}
 
 function mostrarResumen() {
     const listaDiv = document.getElementById('lista-resumen');
     const totalSpan = document.getElementById('total-modal');
-    listaDiv.innerHTML = ""; // Limpiar antes de rellenar
+    listaDiv.innerHTML = "";
 
-    // Agrupar productos: "2x Combo Simple"
-    const conteo = {};
-    carrito.forEach(item => {
-        conteo[item.nombre] = (conteo[item.nombre] || 0) + 1;
-    });
-
-    // Rellenar la lista del modal
-    for (const [nombre, cantidad] of Object.entries(conteo)) {
-        listaDiv.innerHTML += `<p style="margin: 5px 0;">✅ <strong>${cantidad}x</strong> ${nombre}</p>`;
+    const items = Object.entries(carrito);
+    
+    if (items.length === 0) {
+        cerrarModal();
+        return;
     }
 
-    const total = carrito.reduce((sum, item) => sum + item.precio, 0);
+    items.forEach(([nombre, datos]) => {
+        listaDiv.innerHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span>${nombre} ($${datos.precio.toFixed(2)})</span>
+                <div>
+                    <button onclick="cambiarCantidad('${nombre}', -1)" style="padding: 5px 10px;">-</button>
+                    <span style="margin: 0 10px; font-weight: bold;">${datos.cantidad}</span>
+                    <button onclick="cambiarCantidad('${nombre}', 1)" style="padding: 5px 10px;">+</button>
+                </div>
+            </div>
+        `;
+    });
+
+    const total = items.reduce((sum, [_, d]) => sum + (d.precio * d.cantidad), 0);
     totalSpan.innerText = `$${total.toFixed(2)}`;
 
-    // Mostrar modal y ocultar el botón de abajo para que no se superponga
     document.getElementById('modal-confirmacion').style.display = 'flex';
     tg.MainButton.hide();
 }
 
-function cerrarModal() {
-    document.getElementById('modal-confirmacion').style.display = 'none';
-    // Si todavía hay cosas en el carrito, volvemos a mostrar el botón de ver pedido
-    if (carrito.length > 0) {
-        tg.MainButton.show();
-    }
-}
-
-// --- ENVÍO FINAL ---
-
+// Actualizamos la función de envío para que use la nueva estructura
 function confirmarYEnviar() {
-    // Agrupamos los datos una última vez para el bot
-    const conteo = {};
-    carrito.forEach(item => {
-        conteo[item.nombre] = (conteo[item.nombre] || 0) + 1;
-    });
-
-    const resumenTexto = Object.entries(conteo)
-        .map(([nombre, cantidad]) => `${cantidad}x ${nombre}`)
-        .join(", ");
-
-    const totalPedido = carrito.reduce((sum, item) => sum + item.precio, 0);
+    const items = Object.entries(carrito);
+    const resumenTexto = items.map(([nombre, d]) => `${d.cantidad}x ${nombre}`).join(", ");
+    const totalPedido = items.reduce((sum, [_, d]) => sum + (d.precio * d.cantidad), 0);
     
     const datosParaElBot = {
         resumen: resumenTexto,
-        total: totalPedido.toFixed(2),
-        cantidad_items: carrito.length
+        total: totalPedido.toFixed(2)
     };
 
-    // Esto cierra la Mini App y manda los datos al servidor de Telegram
     tg.sendData(JSON.stringify(datosParaElBot));
 }
-
-// Avisar a Telegram que la app está lista
-tg.ready();
