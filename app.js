@@ -4,10 +4,10 @@ const tg = window.Telegram.WebApp;
 // Expandir la app para que use toda la pantalla disponible
 tg.expand();
 
-// Personalizar el botón principal de Telegram (el de abajo)
-tg.MainButton.text = "ENVIAR PEDIDO";
+// Personalizar el botón principal de Telegram
+tg.MainButton.text = "VER PEDIDO";
 tg.MainButton.textColor = "#FFFFFF";
-tg.MainButton.color = "#2cab37"; // Un color verde para el botón
+tg.MainButton.color = "#2cab37";
 
 // Mostrar el nombre del usuario
 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -16,29 +16,12 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
 
 let carrito = [];
 
-function vaciarCarrito() {
-    // 1. Preguntar al usuario antes de borrar (opcional pero recomendado)
-    if (confirm("¿Seguro que quieres vaciar el carrito?")) {
-        carrito = []; // Limpiamos el array
-        
-        // 2. Feedback táctil (vibración de aviso)
-        if (tg.HapticFeedback) {
-            tg.HapticFeedback.notificationOccurred('warning');
-        }
+// --- FUNCIONES DE CARRITO ---
 
-        // 3. Ocultamos el botón de vaciar y el MainButton de Telegram
-        document.getElementById('btn-vaciar').style.display = 'none';
-        tg.MainButton.hide();
-        
-        alert("Carrito vaciado");
-    }
-}
-
-// MODIFICACIÓN: Actualiza tu función agregarAlCarrito para que muestre el botón de vaciar
 function agregarAlCarrito(nombre, precio) {
     carrito.push({ nombre, precio });
     
-    // Mostramos el botón de "Vaciar" solo si hay algo en el carrito
+    // Mostramos el botón de "Vaciar" en el menú
     document.getElementById('btn-vaciar').style.display = 'block';
 
     if (tg.HapticFeedback) {
@@ -48,6 +31,20 @@ function agregarAlCarrito(nombre, precio) {
     actualizarInterfaz();
 }
 
+function vaciarCarrito() {
+    if (confirm("¿Seguro que quieres vaciar el carrito?")) {
+        carrito = [];
+        
+        if (tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        document.getElementById('btn-vaciar').style.display = 'none';
+        tg.MainButton.hide();
+        cerrarModal(); // Por si acaso estuviera abierto
+    }
+}
+
 function actualizarInterfaz() {
     if (carrito.length === 0) {
         tg.MainButton.hide();
@@ -55,8 +52,6 @@ function actualizarInterfaz() {
     }
 
     const total = carrito.reduce((sum, item) => sum + item.precio, 0);
-    
-    // Actualizamos el texto del botón con el número de productos
     tg.MainButton.setText(`VER PEDIDO (${carrito.length}) - $${total.toFixed(2)}`);
     
     if (!tg.MainButton.isVisible) {
@@ -64,16 +59,54 @@ function actualizarInterfaz() {
     }
 }
 
-// Evento al hacer clic en el botón verde de abajo
+// --- LÓGICA DEL MODAL (RESUMEN) ---
+
+// Al pulsar el botón verde de Telegram, abrimos el resumen
 tg.onEvent('mainButtonClicked', function() {
-    // 3. Agrupar productos para que el mensaje sea legible
-    // Ejemplo: { "Combo Simple": 2, "Patatas": 1 }
+    mostrarResumen();
+});
+
+function mostrarResumen() {
+    const listaDiv = document.getElementById('lista-resumen');
+    const totalSpan = document.getElementById('total-modal');
+    listaDiv.innerHTML = ""; // Limpiar antes de rellenar
+
+    // Agrupar productos: "2x Combo Simple"
     const conteo = {};
     carrito.forEach(item => {
         conteo[item.nombre] = (conteo[item.nombre] || 0) + 1;
     });
 
-    // Convertir el objeto a un texto bonito: "2x Combo Simple, 1x Patatas"
+    // Rellenar la lista del modal
+    for (const [nombre, cantidad] of Object.entries(conteo)) {
+        listaDiv.innerHTML += `<p style="margin: 5px 0;">✅ <strong>${cantidad}x</strong> ${nombre}</p>`;
+    }
+
+    const total = carrito.reduce((sum, item) => sum + item.precio, 0);
+    totalSpan.innerText = `$${total.toFixed(2)}`;
+
+    // Mostrar modal y ocultar el botón de abajo para que no se superponga
+    document.getElementById('modal-confirmacion').style.display = 'flex';
+    tg.MainButton.hide();
+}
+
+function cerrarModal() {
+    document.getElementById('modal-confirmacion').style.display = 'none';
+    // Si todavía hay cosas en el carrito, volvemos a mostrar el botón de ver pedido
+    if (carrito.length > 0) {
+        tg.MainButton.show();
+    }
+}
+
+// --- ENVÍO FINAL ---
+
+function confirmarYEnviar() {
+    // Agrupamos los datos una última vez para el bot
+    const conteo = {};
+    carrito.forEach(item => {
+        conteo[item.nombre] = (conteo[item.nombre] || 0) + 1;
+    });
+
     const resumenTexto = Object.entries(conteo)
         .map(([nombre, cantidad]) => `${cantidad}x ${nombre}`)
         .join(", ");
@@ -86,6 +119,9 @@ tg.onEvent('mainButtonClicked', function() {
         cantidad_items: carrito.length
     };
 
-    // 4. Enviar y cerrar
+    // Esto cierra la Mini App y manda los datos al servidor de Telegram
     tg.sendData(JSON.stringify(datosParaElBot));
-});
+}
+
+// Avisar a Telegram que la app está lista
+tg.ready();
